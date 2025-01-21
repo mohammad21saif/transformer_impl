@@ -29,5 +29,5 @@ class ScaledDotProductAttention(nn.Module):
         attn_probs = nn.Softmax(scores) # (batch_size, n_heads, query_len, value_len)
         output = torch.matmul(self.dropout(attn_probs), value)
 
-        return output
+        return output, attn_probs
 

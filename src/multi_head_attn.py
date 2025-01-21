@@ -20,11 +20,25 @@ class MultiHeadAttention(nn.Module):
         self.attention = ScaledDotProductAttention(np.sqrt(self.d_k), dropout_rate)
 
 
-    def split_heads(self):
-        pass
+    def split_heads(self, x):
+        """
+        x: (batch_size, seq_length, d_model)
+        """
+        batch_size = x.size(0)
+        x = x.view(batch_size, -1, self.n_heads, self.d_k).transpose(1, 2)  # (batch_size, n_heads, seq_len, d_k)
 
-    def group_heads(self):
-        pass
+        return x # (batch_size, n_heads, seq_len, head_dim)
+
+
+    def group_heads(self, x):
+        """
+        x: (batch_size, seq_length, d_model)
+        """
+        batch_size = x.size(0)
+        x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.d_k)
+
+        return x # (batch_size, seq_len, d_model)
+
 
     def forward(self, query, key, value, mask=None):
         """
@@ -42,3 +56,8 @@ class MultiHeadAttention(nn.Module):
         if mask is not None:
             mask = mask.unsqueeze(1)
 
+        x, attn = self.attention.forward(Q, K, V, mask) # x: (batch_size, seq_len, d_model), attn: (batch_size, n_heads, query_len, value_len)
+        x = self.group_heads(x) # (batch_size, seq_len, d_model)
+        x = self.W_o(x)
+
+        return x, attn
